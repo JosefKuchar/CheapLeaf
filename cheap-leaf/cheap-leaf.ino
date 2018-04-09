@@ -1,9 +1,9 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUDP.h>
-#include <FastLED.h>
+#include <FastLED.h> // https://github.com/FastLED/FastLED
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
-#include <WiFiManager.h>
+#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 
 #define SEGMENTS 14 // Number of segments (triangles for example)
 #define PER_SEGMENT 2 // Number of LEDs per segment
@@ -16,27 +16,37 @@
 WiFiUDP Udp;
 CRGB leds[SEGMENTS * PER_SEGMENT];
 std::unique_ptr<ESP8266WebServer> webserver;
+// Buffer for UDP packet
 char packet[255];
 
 void setup() {
+  // Setup serial connection
   Serial.begin(115200);
 
   // Setup leds
   FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, SEGMENTS * PER_SEGMENT);
-  
+
+  // Connect to WiFi
   Serial.print("Connecting to WiFi");
   WiFiManager wifiManager;
-  wifiManager.autoConnect();
-  Serial.println("Connected");
-  Serial.println(WiFi.localIP());
+  wifiManager.setAPCallback(configMode);
+  wifiManager.autoConnect("Cheaf Leaf");
+  Serial.print("Connected, IP: ");
+  Serial.print(WiFi.localIP());
+  Serial.print("\n");
 
   // Reset webserver after WiFi Manager magic
+  Serial.println("Starting webserver");
   webserver.reset(new ESP8266WebServer(WiFi.localIP(), 80));
   webserver->begin();
-  
+  Serial.println("Webserver started, port: 80");
+
+  // Start UDP server
   Serial.println("Starting UDP server");
   Udp.begin(PORT);
-  Serial.println("UDP server started, port 4489");
+  Serial.print("UDP server started, port: ");
+  Serial.print(PORT);
+  Serial.print("\n");
 }
 
 void loop() {
@@ -60,4 +70,9 @@ void loop() {
     // Send data to the LED strip
     FastLED.show();
   }
+}
+
+void configMode(WiFiManager *wifiManager) {
+  Serial.println("Connection failed");
+  Serial.println("Entered config mode");
 }
